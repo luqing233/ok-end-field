@@ -12,7 +12,6 @@ from PIL import Image
 from ok import Box
 from skimage.metrics import structural_similarity as ssim
 
-from src.OpenVinoYolo8Detect import OpenVinoYolo8Detect
 from src.config import config as app_config
 from src.data.FeatureList import FeatureList as fL
 from src.image.frame_processes import isolate_by_hsv_ranges
@@ -22,6 +21,7 @@ from src.interaction.Mouse import (
     move_to_target_once as move_to_target_once_impl,
     run_at_window_pos,
 )
+from src.yolo.loader import YoloModelLoader
 
 feature_values = [f.value for f in fL]
 
@@ -156,8 +156,10 @@ class RuntimeMixin:
 
             try:
                 yolo_config = app_config.get("yolo", {})
-                model_path = yolo_config.get("model_path", "models/yolo/best.onnx")
-                self._detector = OpenVinoYolo8Detect(weights=model_path)
+                self._yolo_loader = YoloModelLoader(yolo_config)
+                if not self._yolo_model_key:
+                    self._yolo_model_key = self._yolo_loader.default_model_key
+                self._detector = self._yolo_loader.get_detector(self._yolo_model_key)
             finally:
                 self._detector_loading = False
                 self._detector_loaded_event.set()
@@ -178,11 +180,57 @@ class RuntimeMixin:
 
         return self._detector
 
+    def yolo_loader(self) -> YoloModelLoader:
+        if self._yolo_loader is not None:
+            return self._yolo_loader
+        self.detector
+        if self._yolo_loader is None:
+            raise RuntimeError("YOLO loader 初始化失败")
+        return self._yolo_loader
+
+    def list_yolo_models(self) -> list[str]:
+        return self.yolo_loader().available_models()
+
+    def list_yolo_targets(self, model_key: str | None = None) -> list[str]:
+        return self.yolo_loader().target_names(model_key or self._yolo_model_key)
+
+    def set_yolo_model(self, model_key: str):
+        loader = self.yolo_loader()
+        self._detector = loader.get_detector(model_key)
+        self._yolo_model_key = model_key
+        return self._detector
+
     def isolate_by_hsv_ranges(self, frame, ranges, invert=True, kernel_size=2):
         return isolate_by_hsv_ranges(frame, ranges, invert, kernel_size)
 
     def make_hsv_isolator(self, ranges):
         return partial(self.isolate_by_hsv_ranges, ranges=ranges)
+
+    def _is_debug_overlay_enabled(self) -> bool:
+        config_holders = (
+            getattr(self, "executor", None),
+            self,
+        )
+        for holder in config_holders:
+            ok_config = getattr(holder, "ok_config", None)
+            if ok_config is None:
+                continue
+            getter = getattr(ok_config, "get", None)
+            if callable(getter):
+                return bool(getter("use_overlay", False))
+
+        try:
+            from ok import og  # type: ignore
+
+            app = getattr(og, "app", None)
+            ok_config = getattr(app, "ok_config", None)
+            getter = getattr(ok_config, "get", None)
+            if callable(getter):
+                return bool(getter("use_overlay", False))
+        except Exception:
+            pass
+
+        return False
 
     def yolo_detect(
             self,
@@ -190,15 +238,20 @@ class RuntimeMixin:
             frame: np.ndarray | None = None,
             box: Box | None = None,
             conf: float = 0.7,
+            detections: list[Box] | None = None,
+            model_key: str | None = None,
     ) -> list[Box]:
         if not name:
             raise ValueError("yolo_detect 至少需要传入一个 name")
         raw_names = [name] if isinstance(name, str) else name
-        target_names = {
+        ordered_target_names = [
             str(n.value) if isinstance(n, Enum) else str(n)
             for n in raw_names
             if n is not None
-        }
+        ]
+        target_names = {n for n in ordered_target_names}
+        if not ordered_target_names:
+            raise ValueError("yolo_detect 至少需要一个有效 name")
 
         frame = frame if frame is not None else self.next_frame()
         if frame is None:
@@ -213,14 +266,31 @@ class RuntimeMixin:
             offset_x = int(box.x)
             offset_y = int(box.y)
 
-        detections = self.detector.detect(detect_frame, threshold=conf)
+        if detections is None:
+            if model_key is None:
+                loader = self.yolo_loader()
+                first_name = ordered_target_names[0]
+                resolved_model_key, detector = loader.get_detector_for_name(first_name)
+                self._yolo_model_key = resolved_model_key
+                self._detector = detector
+            else:
+                detector = self.set_yolo_model(model_key)
+            if detector is None:
+                self.log_error("yolo_detect: detector is not available")
+                return []
+            detections = detector.detect(detect_frame, threshold=conf)
+        detections = detections or []
+
         self.log_info(f"yolo_detect: raw detections count = {len(detections)}")
-        results: list[Box] = []
+        raw_results: list[Box] = []
+        filtered_results: list[Box] = []
 
         for det in detections:
-            self.log_info(f"Raw detection: name={getattr(det, 'name', None)}, conf={det.confidence:.3f}")
-            if getattr(det, "name", None) not in target_names:
+            if not all(hasattr(det, attr) for attr in ("x", "y", "width", "height")):
                 continue
+            det_name = getattr(det, "name", None)
+            det_conf = float(getattr(det, "confidence", 0.0) or 0.0)
+            self.log_info(f"Raw detection: name={det_name}, conf={det_conf:.3f}")
 
             new_box = Box(
                 int(det.x + offset_x),
@@ -229,14 +299,22 @@ class RuntimeMixin:
                 int(det.height),
             )
 
-            new_box.name = det.name
-            new_box.confidence = det.confidence
+            new_box.name = det_name
+            new_box.confidence = det_conf
+            raw_results.append(new_box)
 
-            results.append(new_box)
+            if det_name in target_names:
+                filtered_results.append(new_box)
 
-        self.log_info(f"yolo_detect: filtered detections count = {len(results)}")
+        debug_overlay_enabled = self._is_debug_overlay_enabled()
+        if debug_overlay_enabled:
+            debug_tag = "_".join(sorted(target_names)) or "no_target"
+            self.draw_boxes(f"yolo_raw_{debug_tag}", raw_results, color="yellow", debug=debug_overlay_enabled)
+            self.draw_boxes(f"yolo_filtered_{debug_tag}", filtered_results, color="red", debug=debug_overlay_enabled)
 
-        return sorted(results, key=lambda item: item.confidence, reverse=True)
+        self.log_info(f"yolo_detect: filtered detections count = {len(filtered_results)}")
+
+        return sorted(filtered_results, key=lambda item: item.confidence, reverse=True)
 
     def wait_ui_stable(
             self,

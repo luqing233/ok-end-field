@@ -865,6 +865,8 @@ def yolo_detect(
     frame=None,
     box=None,
     conf=0.7,
+    detections=None,
+    model_key=None,
 ) -> list[Box]
 ```
 
@@ -876,10 +878,34 @@ def yolo_detect(
 | `frame` | `ndarray \| None` | 指定帧，`None` 则自动截取 |
 | `box` | `Box \| None` | 限制检测 ROI，`None` 为全屏 |
 | `conf` | `float` | 置信度阈值，默认 `0.7` |
+| `detections` | `list[Box] \| None` | 测试注入检测结果；传入后跳过模型推理，仅执行筛选与坐标映射 |
+| `model_key` | `str \| None` | 可选强制指定模型；不传时根据 `name` 自动路由模型 |
 
 ```python
 boxes = self.yolo_detect("battle_end", box=self.box.center, conf=0.6)
 ```
+
+推荐在 `src/yolo/models.py` 中集中维护多模型与 labels：
+
+```python
+DEFAULT_MODEL_KEY = "battle_end_default"
+YOLO_MODELS = {
+    "battle_end_default": {
+        "model_path": "assets/models/yolo/best.onnx",
+        "labels": {0: "battle_end"},
+    },
+    "another_model": {
+        "model_path": "assets/models/yolo/another.onnx",
+        "labels": {0: "target_a", 1: "target_b"},
+    },
+}
+```
+
+`config.py` 中 `yolo.default_model` 仅用于启动时预加载默认模型。
+
+开启「显示调试悬浮窗（Debug Overlay）」时会自动画框：
+- 黄色：YOLO 原始检测结果
+- 红色：按 `name` 过滤后的结果
 
 ---
 
