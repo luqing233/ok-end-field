@@ -3,7 +3,7 @@ from src.tasks.BaseEfTask import BaseEfTask
 
 
 class MapMixin(BaseEfTask):
-    def task_to_transfer_point(self, test_target_box=None):
+    def task_to_transfer_point(self, test_target_box=None, search_box_resolver=None):
         """
         传送到运输委托对应的出发传送点。
 
@@ -18,6 +18,9 @@ class MapMixin(BaseEfTask):
             test_target_box (Box, optional):
                 查找传送点的屏幕区域。
                 如果为 None，则默认使用 self.box.top 区域。
+            search_box_resolver (callable, optional):
+                地图加载完成后用于重新解析传送点搜索区域的回调。
+                入参为当前的 test_target_box，返回值为新的 Box 或 None。
 
         Returns:
             bool:
@@ -51,6 +54,11 @@ class MapMixin(BaseEfTask):
 
         # 等待 UI 稳定（地图加载完成）
         self.wait_ui_stable(refresh_interval=1)
+
+        if search_box_resolver is not None:
+            resolved_box = search_box_resolver(test_target_box)
+            if resolved_box is not None:
+                test_target_box = resolved_box
 
         # 执行附近传送点传送
         return self.to_near_transfer_point(test_target_box)
@@ -142,3 +150,4 @@ class MapMixin(BaseEfTask):
         self.click(result, after_sleep=2)
 
         return True
+

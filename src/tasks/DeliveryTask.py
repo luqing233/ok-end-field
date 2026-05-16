@@ -608,9 +608,41 @@ class DeliveryTask(AccountMixin, ZipLineMixin, MapMixin):
             return cached_box
         if self._accepted_delivery_location:
             self.log_info(f"委托地点({self._accepted_delivery_location})未配置传送搜索区域，送货失败")
-        else:
-            self.log_info("未缓存委托地点，送货失败")
         return None
+
+    def _try_recover_delivery_location_on_map(self):
+        """地图已打开时，尝试从右上角地点信息回填委托地点缓存。"""
+        if self._accepted_delivery_location:
+            return False
+        if not hasattr(self, "delivery_area"):
+            return False
+
+        try:
+            from src.data.delivery_area_service import extract_delivery_location
+
+            ocr_results = self.ocr(box=self.box.top_right)
+            if not ocr_results:
+                return False
+
+            location_text = " ".join(item.get("text", "") for item in ocr_results)
+            if not location_text:
+                return False
+
+            location_name = extract_delivery_location(location_text, self.delivery_area)
+            if not location_name:
+                return False
+
+            self._accepted_delivery_location = location_name
+            self.log_info(f"通过地图自动回填送货地点: {location_name}")
+            return True
+        except Exception:
+            return False
+
+    def _resolve_transfer_point_search_box_after_map_open(self, fallback_box):
+        """地图打开后重新解析传送点搜索区域，便于后续扩展或回填逻辑插入。"""
+        if not self._accepted_delivery_location:
+            self._try_recover_delivery_location_on_map()
+        return self._resolve_transfer_point_search_box() or fallback_box
 
     def _run_single_delivery_cycle(self):
         if self.config.get(self.CFG_TEST_TARGET) == self.TEST_NONE:
@@ -642,16 +674,17 @@ class DeliveryTask(AccountMixin, ZipLineMixin, MapMixin):
                             log=True,
                         )
                     success = None
-                    for _ in range(3):
-                        search_box = self._resolve_transfer_point_search_box()
-                        if search_box is None:
-                            self.log_info("未能确定传送点搜索区域（地点未缓存或配置缺失），终止本轮送货")
-                            return
-                        success = self.task_to_transfer_point(search_box)
+                    for attempt in range(3):
+                        success = self.task_to_transfer_point(
+                            search_box_resolver=self._resolve_transfer_point_search_box_after_map_open,
+                        )
                         if success:
                             break
                     if not success:
-                        self.log_info("前往传送点失败，重试...")
+                        if self._accepted_delivery_location:
+                            self.log_info("未能确定传送点搜索区域（地点未缓存或配置缺失），终止本轮送货")
+                        else:
+                            self.log_info("未缓存委托地点，送货失败")
                         return
                     if not self.to_storage_point_and_back_zip_line():
                         return
