@@ -14,7 +14,12 @@ class BattleTask(DailyBattleMixin):
 
     def run(self):
         self.ensure_main(time_out=420)
-        if self.battle():
-            self.log_info("刷体力结束!", notify=self.config.get("后台结束战斗通知") and self.in_bg())
-        else:
-            self.log_info("未检测到刷体力正常结束,可能未进入战斗或战斗异常,请检查")
+        try:
+            ok = self.battle()
+            if ok:
+                self.log_info("刷体力结束!", notify=self.config.get("后台结束战斗通知") and self.in_bg())
+            else:
+                self.log_info("未检测到刷体力正常结束,可能未进入战斗或战斗异常,请检查")
+        finally:
+            # 显式释放 YOLO/OpenVINO 相关资源，避免长期驻留在进程内存中。
+            self.release_yolo_detector()
