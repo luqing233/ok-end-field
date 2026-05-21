@@ -10,6 +10,7 @@ from src.tasks.mixin.account_override_mixin import AccountOverrideMixin
 from src.tasks.mixin.game_flow_mixin import GameFlowMixin
 from src.tasks.mixin.process_manager import ProcessManager
 from src.tasks.mixin.runtime_mixin import RuntimeMixin
+from src.tasks.mixin.window_arrow_drawing_mixin import WindowArrowDrawingMixin
 
 
 def back_window(prev):
@@ -23,6 +24,7 @@ def back_window(prev):
 
 
 class BaseEfTask(
+    WindowArrowDrawingMixin,
     AccountOverrideMixin,
     GameFlowMixin,
     RuntimeMixin,
@@ -44,6 +46,9 @@ class BaseEfTask(
             "SingleActionWithDelay", 1.5
         )  # 获取全局配置的单次动作睡眠时间
         self.key_manager = KeyConfigManager(self.key_config)  # 初始化热键管理器
+        
+        # 初始化窗口箭头绘制 Mixin
+        self._init_window_arrow_drawing_mixin()
 
         self._detector = None
         self._detector_lock = threading.Lock()

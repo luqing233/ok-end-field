@@ -171,7 +171,7 @@ class DailyBattleMixin(MapMixin, ZipLineMixin, BattleMixin, Common):
             if stage in self.REWARD_TIER_STAGE_SET:
                 stage_options_with_tiers.append(f"{stage}{self.REWARD_TIER_LOW}")
                 stage_options_with_tiers.append(f"{stage}{self.REWARD_TIER_HIGH}")
-        self.config_type["刷本序列"] = {"type": "button_list", "options": stage_options_with_tiers}
+        # self.config_type["刷本序列"] = {"type": "button_list", "options": stage_options_with_tiers}
         self.config_type["体力本"] = {"type": "drop_down", "options": self.stages_list}
         self.config_type[self.CFG_STAGE_REWARD_TIER] = {
             "type": "drop_down",
