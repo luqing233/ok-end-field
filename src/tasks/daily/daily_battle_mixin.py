@@ -138,14 +138,7 @@ class DailyBattleMixin(MapMixin, ZipLineMixin, BattleMixin, Common):
                 "用于计算今天是第几天，配合刷本序列使用。"
             ),
             "刷本序列": (
-                f"多个副本名用逗号分隔，如：干员经验,干员进阶,钱币收集。\n"
-                f"会根据开始日期自动轮换。\n"
-                "支持在以下副本后追加『低阶』或『高阶』：\n"
-                "干员经验/干员进阶/技能提升/武器进阶。\n"
-                "示例：干员经验低阶,技能提升高阶。\n"
-                "必须为以下之一：\n"
-                + '\n'.join([', '.join(self.stages_list[i:i+4]) for i in range(0, len(self.stages_list), 4)]) + "。\n"
-                f"留空表示不启用自动轮换。"
+                f"会根据开始日期自动轮换，留空表示不启用自动轮换。"
             ),
             "体力刷完后继续刷取次数": (
                 "结算时点击「放弃」而非「领取」，不消耗体力。\n"
@@ -172,7 +165,7 @@ class DailyBattleMixin(MapMixin, ZipLineMixin, BattleMixin, Common):
             if stage in self.REWARD_TIER_STAGE_SET:
                 stage_options_with_tiers.append(f"{stage}{self.REWARD_TIER_LOW}")
                 stage_options_with_tiers.append(f"{stage}{self.REWARD_TIER_HIGH}")
-        # self.config_type["刷本序列"] = {"type": "button_list", "options": stage_options_with_tiers}
+        self.config_type["刷本序列"] = {"type": "button_list", "options": stage_options_with_tiers}
         self.config_type["体力本"] = {"type": "drop_down", "options": self.stages_list}
         self.config_type[self.CFG_STAGE_REWARD_TIER] = {
             "type": "drop_down",
