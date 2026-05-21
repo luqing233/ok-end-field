@@ -8,7 +8,7 @@ from typing import Dict, Tuple
 
 from qfluentwidgets import FluentIcon
 
-from ok import Logger, TriggerTask
+from ok import Logger
 from src.tasks.BaseEfTask import BaseEfTask
 from src.tasks.mixin.ws_position_mixin import WsPositionMixin
 from src.data import item_map_query
@@ -16,7 +16,7 @@ from src.data import item_map_query
 logger = Logger.get_logger(__name__)
 
 
-class ItemNavigatorTask(WsPositionMixin, BaseEfTask, TriggerTask):
+class ItemNavigatorTask(WsPositionMixin, BaseEfTask):
     """实时从本地 WebSocket 拿玩家位置，指向已选物品的最近点，并支持按键标记已获取。
 
     设计原则：
@@ -58,10 +58,14 @@ class ItemNavigatorTask(WsPositionMixin, BaseEfTask, TriggerTask):
         self._marked: Dict[str, set] = {}  # mapId -> set of point hashes
 
         # 箭头渲染可调参数（便于快速微调视觉）
-        self._arrow_center_rel = (0.08, 0.42)
+        self._arrow_center_rel = (162/1920, 166/1080)  # 相对于窗口的箭头中心位置（比例），默认在左上角稍微偏右下   
         self._arrow_max_len_ratio = 0.08
         self._arrow_min_len_px = 20.0
         self._arrow_scale = 3.0
+        # 箭头样式参数（可调）
+        self._arrow_color = (0, 255, 0)  # RGB
+        self._arrow_alpha = 160  # 透明度 0-255，160 为半透明
+        self._arrow_shaft_width_norm = 0.005  # 箭身宽度（细）
 
         self._load_marked()
         # dirty-save 控制：标记后延迟合并写盘
@@ -134,7 +138,9 @@ class ItemNavigatorTask(WsPositionMixin, BaseEfTask, TriggerTask):
                 max_length=max_length,
                 draw_length=draw_length,
                 angle_deg=angle_deg,
-                color=(0, 255, 0),
+                color=self._arrow_color,
+                alpha=self._arrow_alpha,
+                shaft_width_norm=self._arrow_shaft_width_norm,
             )
 
             if tooltip:

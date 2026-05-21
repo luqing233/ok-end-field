@@ -33,7 +33,8 @@ class WindowArrowOverlay(QWidget):
         self._arrows: List[ArrowSpec] = []
         self._arrow_head_angle_deg = 28.0
         self._arrow_head_len_ratio = 0.35
-        self._base_color = QColor(0, 255, 0)
+        # 默认使用半透明绿色（alpha=160）以减少视觉遮挡
+        self._base_color = QColor(0, 255, 0, 160)
         self._sync_timer = QTimer(self)
         self._sync_timer.timeout.connect(self._sync_geometry)
         self._sync_timer.start(50)
@@ -50,7 +51,17 @@ class WindowArrowOverlay(QWidget):
         self._sync_geometry()
 
     def set_style(self, color: Tuple[int, int, int], head_angle_deg: float, head_len_ratio: float):
-        self._base_color = QColor(*color)
+        # 支持三元/四元元组或直接传入 QColor；三元组使用默认 alpha
+        try:
+            if isinstance(color, QColor):
+                self._base_color = color
+            elif len(color) == 4:
+                self._base_color = QColor(color[0], color[1], color[2], color[3])
+            else:
+                # 采用默认 alpha（与初始化时一致）
+                self._base_color = QColor(color[0], color[1], color[2], self._base_color.alpha())
+        except Exception:
+            self._base_color = QColor(0, 255, 0, self._base_color.alpha())
         self._arrow_head_angle_deg = head_angle_deg
         self._arrow_head_len_ratio = head_len_ratio
 
@@ -96,7 +107,16 @@ class WindowArrowOverlay(QWidget):
             logger.error(f"同步箭头叠层几何失败: {e}")
 
     def _color_for(self, color: Tuple[int, int, int]) -> QColor:
-        return QColor(color[0], color[1], color[2])
+        try:
+            # 支持 QColor 直接传入
+            if isinstance(color, QColor):
+                return color
+            # 支持三元或四元元组 (r,g,b) 或 (r,g,b,a)
+            if len(color) == 4:
+                return QColor(color[0], color[1], color[2], color[3])
+            return QColor(color[0], color[1], color[2], self._base_color.alpha())
+        except Exception:
+            return QColor(0, 255, 0, self._base_color.alpha())
 
     def paintEvent(self, event):
         if not self._arrows:
@@ -123,7 +143,8 @@ class WindowArrowOverlay(QWidget):
             return
 
         color = self._color_for(spec.color)
-        shaft_width = max(2, int(min(width, height) * spec.shaft_width_norm))
+        # 允许更细的箭身，最小为 1 像素
+        shaft_width = max(1, int(min(width, height) * spec.shaft_width_norm))
         head_len = spec.head_len_norm * min(width, height) if spec.head_len_norm is not None else max(10.0, length * self._arrow_head_len_ratio)
         head_len = max(8.0, min(head_len, min(width, height) * 0.18))
 
@@ -190,7 +211,7 @@ class WindowArrowOverlay(QWidget):
             pass
 
         # 用一个小圆点稳住起点，视觉上更像正常箭头起点
-        painter.drawEllipse(QPointF(start_x, start_y), shaft_width * 0.35, shaft_width * 0.35)
+        painter.drawEllipse(QPointF(start_x, start_y), max(1.0, shaft_width * 0.35), max(1.0, shaft_width * 0.35))
 
 
 class WindowArrowOverlayController(QObject):
@@ -233,8 +254,12 @@ class WindowArrowDrawingMixin:
     """为 Task 类提供窗口箭头绘制功能。"""
 
     def _init_window_arrow_drawing_mixin(self):
+        # 默认样式（调用方可通过函数参数直接传入覆盖）
+        # 颜色使用 RGB 三元组，alpha 单独配置
         self._window_arrow_color = (0, 255, 0)
-        self._window_arrow_shaft_width_norm = 0.01
+        self._window_arrow_alpha = 160
+        # 细一些的默认箭身宽度
+        self._window_arrow_shaft_width_norm = 0.005
         self._window_arrow_head_angle_deg = 28.0
         self._window_arrow_head_len_ratio = 0.35
         self._window_arrow_overlay: Optional[WindowArrowOverlay] = None
@@ -323,6 +348,7 @@ class WindowArrowDrawingMixin:
         shaft_width_norm: Optional[float] = None,
         head_len_norm: Optional[float] = None,
         color: Optional[Tuple[int, int, int]] = None,
+        alpha: Optional[int] = None,
     ) -> bool:
         """
         在游戏窗口上绘制单个箭头。
@@ -335,6 +361,7 @@ class WindowArrowDrawingMixin:
             shaft_width_norm: 箭身宽度（归一化），默认使用全局设置
             head_len_norm: 箭头头部长度（归一化），默认自动计算
             color: 箭头颜色 (RGB)，默认使用全局设置
+            alpha: 透明度 (0-255)，默认使用全局设置，0=完全透明 255=完全不透明
             
         Returns:
             是否绘制成功
@@ -344,13 +371,18 @@ class WindowArrowDrawingMixin:
             if controller is None:
                 return False
 
+            # 构造最终颜色：如果传入了 alpha，则转换为 RGBA 四元组
+            final_color = color or self._window_arrow_color
+            if alpha is not None and isinstance(final_color, tuple) and len(final_color) == 3:
+                final_color = (final_color[0], final_color[1], final_color[2], alpha)
+
             controller.arrows_requested.emit([
                 ArrowSpec(
                     start_x_norm=start_x_norm,
                     start_y_norm=start_y_norm,
                     end_x_norm=end_x_norm,
                     end_y_norm=end_y_norm,
-                    color=color or self._window_arrow_color,
+                    color=final_color,
                     shaft_width_norm=shaft_width_norm or self._window_arrow_shaft_width_norm,
                     head_len_norm=head_len_norm,
                 )
@@ -370,6 +402,7 @@ class WindowArrowDrawingMixin:
         shaft_width_norm: Optional[float] = None,
         head_len_norm: Optional[float] = None,
         color: Optional[Tuple[int, int, int]] = None,
+        alpha: Optional[int] = None,
         center_is_norm: bool = False,
         length_is_norm: bool = False,
     ) -> bool:
@@ -392,6 +425,7 @@ class WindowArrowDrawingMixin:
             shaft_width_norm: 箭身宽度（归一化）
             head_len_norm: 箭头头部长度（归一化），相对于窗口较小边
             color: 箭头颜色 (RGB)
+            alpha: 透明度 (0-255)，默认使用全局设置
             center_is_norm: 中心坐标是否为归一化坐标
             length_is_norm: 长度是否为归一化长度
 
@@ -425,6 +459,7 @@ class WindowArrowDrawingMixin:
             shaft_width_norm=shaft_width_norm or self._window_arrow_shaft_width_norm,
             head_len_norm=head_len_norm,
             color=color,
+            alpha=alpha,
         )
 
     def draw_window_arrows(
