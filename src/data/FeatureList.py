@@ -38,7 +38,7 @@ class FeatureList(str, Enum):
     danger_4_2k = 'danger_4_2k'
     danger_5_2k = 'danger_5_2k'
     default_link_skill = 'default_link_skill'
-    discount_95_percent_icon = 'discount_95_percent_icon'
+    dense_source_ore_powder_4k = 'dense_source_ore_powder_4k'
     e = 'e'
     ember_contact = 'ember_contact'
     esc = 'esc'

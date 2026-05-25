@@ -187,7 +187,7 @@
         },
         {
             "id": 35,
-            "name": "discount_95_percent_icon",
+            "name": "dense_source_ore_powder_4k",
             "supercategory": ""
         },
         {
@@ -937,7 +937,7 @@
         {
             "license": 0,
             "url": null,
-            "file_name": "images/9.png",
+            "file_name": "images/8.png",
             "height": 1440,
             "width": 2560,
             "date_captured": null,
@@ -946,7 +946,7 @@
         {
             "license": 0,
             "url": null,
-            "file_name": "images/7.png",
+            "file_name": "images/5.png",
             "height": 1080,
             "width": 1920,
             "date_captured": null,
@@ -1063,7 +1063,7 @@
         {
             "license": 0,
             "url": null,
-            "file_name": "images/5.png",
+            "file_name": "images/4.png",
             "height": 1080,
             "width": 1920,
             "date_captured": null,
@@ -1081,7 +1081,7 @@
         {
             "license": 0,
             "url": null,
-            "file_name": "images/5.png",
+            "file_name": "images/4.png",
             "height": 1080,
             "width": 1920,
             "date_captured": null,
@@ -1099,7 +1099,7 @@
         {
             "license": 0,
             "url": null,
-            "file_name": "images/6.png",
+            "file_name": "images/5.png",
             "height": 1080,
             "width": 1920,
             "date_captured": null,
@@ -1108,7 +1108,7 @@
         {
             "license": 0,
             "url": null,
-            "file_name": "images/4.png",
+            "file_name": "images/6.png",
             "height": 1080,
             "width": 1920,
             "date_captured": null,
@@ -1153,7 +1153,7 @@
         {
             "license": 0,
             "url": null,
-            "file_name": "images/5.png",
+            "file_name": "images/4.png",
             "height": 1080,
             "width": 1920,
             "date_captured": null,
@@ -1171,7 +1171,7 @@
         {
             "license": 0,
             "url": null,
-            "file_name": "images/4.png",
+            "file_name": "images/7.png",
             "height": 1080,
             "width": 1920,
             "date_captured": null,
@@ -1266,15 +1266,6 @@
             "width": 3840,
             "date_captured": null,
             "id": 120
-        },
-        {
-            "license": 0,
-            "url": null,
-            "file_name": "images/0.png",
-            "height": 2160,
-            "width": 3840,
-            "date_captured": null,
-            "id": 122
         },
         {
             "license": 0,
@@ -1383,13 +1374,13 @@
         },
         {
             "id": 147,
-            "file_name": "images/5.png",
+            "file_name": "images/7.png",
             "width": 1920,
             "height": 1080
         },
         {
             "id": 148,
-            "file_name": "images/8.png",
+            "file_name": "images/9.png",
             "width": 2560,
             "height": 1440
         },
@@ -1416,6 +1407,12 @@
             "file_name": "images/4.png",
             "width": 1920,
             "height": 1080
+        },
+        {
+            "id": 153,
+            "file_name": "images/0.png",
+            "width": 3840,
+            "height": 2160
         }
     ],
     "annotations": [
@@ -2387,6 +2384,19 @@
             "iscrowd": 0
         },
         {
+            "id": 69,
+            "image_id": 153,
+            "category_id": 35,
+            "bbox": [
+                1543,
+                1092,
+                141,
+                116
+            ],
+            "area": 16356,
+            "iscrowd": 0
+        },
+        {
             "id": 108,
             "image_id": 52,
             "category_id": 119,
@@ -3042,21 +3052,6 @@
                 120
             ],
             "area": 11760,
-            "iscrowd": 0,
-            "ignore": 0,
-            "segmentation": []
-        },
-        {
-            "id": 208,
-            "image_id": 122,
-            "category_id": 35,
-            "bbox": [
-                580,
-                343,
-                58,
-                38
-            ],
-            "area": 2204,
             "iscrowd": 0,
             "ignore": 0,
             "segmentation": []

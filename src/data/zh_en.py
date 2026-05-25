@@ -102,6 +102,7 @@ ITEM_TRANSLATION_DICT = {
     "钢块": "steel_block",
     "高晶纤维": "high_crystal_fiber",
     "致密碳粉末": "dense_carbon_powder",
+    "致密源石粉末": "dense_source_ore_powder",
     "蓝铁块": "bluesteel_block",
     "紫晶纤维": "amethyst_fiber",
     "碳块": "carbon_block",

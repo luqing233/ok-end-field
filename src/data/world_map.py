@@ -55,7 +55,7 @@ exchange_goods_dict = {
         "清波筏货组",
     ]
 }
-item_to_warehouse_dict = {"蓝铁矿": "矿物", "高容谷地电池": "产物", "源矿": "矿物"}
+item_to_warehouse_dict = {"蓝铁矿": "矿物", "高容谷地电池": "产物", "源矿": "矿物", "致密源石粉末": "产物"}
 stages_dict = {
     "干员养成": [
         "干员经验",
