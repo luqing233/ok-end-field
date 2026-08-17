@@ -34,9 +34,9 @@ EMAIL_CONFIG_DESCRIPTION = {
     "收件人列表": (
         "用户别名到邮箱的映射，每行一个，格式：别名=邮箱（或 别名:邮箱）。\n"
         "例如：\n"
-        "洛茜=rossi@endfiled.com\n"
-        "洁尔佩塔=gilberta@endfiled.com\n"
-        "发送时可用 --to 洛茜 直接按别名发送。"
+        "小明=xiaoming@example.com\n"
+        "小红=xiaohong@example.com\n"
+        "发送时可用 --to 小明 直接按别名发送。"
     ),
     "主题前缀": "发送时自动添加到邮件主题前面的前缀。",
     "连接超时秒数": "SMTP 连接与发送的超时时间（秒）。",
