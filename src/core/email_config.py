@@ -35,7 +35,7 @@ EMAIL_CONFIG_DESCRIPTION = {
         "用户别名到邮箱的映射，每行一个，格式：别名=邮箱（或 别名:邮箱）。\n"
         "例如：\n"
         "洛茜=rossi@endfiled.com\n"
-        "洁尔佩塔=gilberta@endfiled.com\n"
+        "小红=gilberta@endfiled.com\n"
         "发送时可用 --to 洛茜 直接按别名发送。"
     ),
     "主题前缀": "发送时自动添加到邮件主题前面的前缀。",
